@@ -43,7 +43,7 @@ export default {
   props: {
     songs: {
       type: Array,
-      default () {
+      default() {
         return []
       }
     },
@@ -56,7 +56,7 @@ export default {
     },
     rank: Boolean
   },
-  data () {
+  data() {
     return {
       imageHeight: 0,
       scrollY: 0,
@@ -64,10 +64,10 @@ export default {
     }
   },
   computed: {
-    noResult () {
+    noResult() {
       return !this.loading && !this.songs.length
     },
-    playBtnStyle () {
+    playBtnStyle() {
       let display = ''
       if (this.scrollY >= this.maxTranslateY) {
         display = 'none'
@@ -76,18 +76,19 @@ export default {
         display
       }
     },
-    bgImageStyle () {
+    bgImageStyle() {
       const scrollY = this.scrollY
       let zIndex = 0
       let paddingTop = '70%'
       let height = 0
-      let translateZ = 0
+      let translateZ = 0 // iphone兼容
 
       if (scrollY > this.maxTranslateY) {
+        // 如果滚动距离超过设定的距离
         zIndex = 10
-        paddingTop = 0
+        paddingTop = 0 // 修改bug, 这个bug是用paddingtop撑开宽高后导致的
         height = `${RESERVED_HEIGHT}px`
-        translateZ = 1
+        translateZ = 1 // iphone兼容
       }
 
       let scale = 1
@@ -100,20 +101,21 @@ export default {
         paddingTop,
         height,
         backgroundImage: `url(${this.pic})`,
-        transform: `scale(${scale})translateZ(${translateZ}px)`
+        transform: `scale(${scale}) translateZ(${translateZ}px)`
       }
     },
-    scrollStyle () {
+    scrollStyle() {
       const bottom = this.songs.length ? '60px' : '0'
       return {
         top: `${this.imageHeight}px`,
         bottom
       }
     },
-    filterStyle () {
+    filterStyle() {
       let blur = 0
       const scrollY = this.scrollY
       const imageHeight = this.imageHeight
+      // 性能优化技巧 -> 当this中的变量使用次数大于1次时，应当缓存起来
       if (scrollY >= 0) {
         blur =
           Math.min(this.maxTranslateY / imageHeight, scrollY / imageHeight) * 20
@@ -121,27 +123,27 @@ export default {
       return {
         backdropFilter: `blur(${blur}px)`
       }
-    }, 
+    },
     ...mapState(['playlist'])
   },
-  mounted () {
+  mounted() {
     this.imageHeight = this.$refs.bgImage.clientHeight
     this.maxTranslateY = this.imageHeight - RESERVED_HEIGHT
   },
   methods: {
-    goBack () {
+    goBack() {
       this.$router.back()
     },
-    onScroll (pos) {
+    onScroll(pos) {
       this.scrollY = -pos.y
     },
-    selectItem ({ song, index }) {
+    selectItem({ song, index }) {
       this.selectPlay({
         list: this.songs,
         index
       })
     },
-    random () {
+    random() {
       this.randomPlay(this.songs)
     },
     ...mapActions(['selectPlay', 'randomPlay'])

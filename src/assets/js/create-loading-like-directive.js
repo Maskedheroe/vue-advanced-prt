@@ -4,6 +4,7 @@ import { addClass, removeClass } from '@/assets/js/dom'
 const relativeCls = 'g-relative'
 
 export default function createLoadingLikeDirective (Comp) {
+  // 闭包的经典使用
   return {
     mounted (el, binding) {
       const app = createApp(Comp)

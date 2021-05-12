@@ -16,5 +16,6 @@ module.exports = {
     "no-spaced-func": 'off',//函数调用时 函数名与()之间不能有空格
     "indent": ["off"],//缩进风格
     'no-trailing-spaces': 0,
+    "space-before-function-paren": 0
   }
 }
