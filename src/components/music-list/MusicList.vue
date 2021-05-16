@@ -22,6 +22,7 @@
       v-no-result:[noResultText]="noResult"
     >
       <div class="song-list-wrapper">
+        <!-- @select 这就是监听子组件传上来的事件 -->
         <SongList :songs="songs" @select="selectItem" :rank="rank"></SongList>
       </div>
     </Scroll>
@@ -146,7 +147,7 @@ export default {
     random() {
       this.randomPlay(this.songs)
     },
-    ...mapActions(['selectPlay', 'randomPlay'])
+    ...mapActions(['selectPlay', 'randomPlay']) // 批量获得actions 是一个语法糖
   }
 }
 </script>

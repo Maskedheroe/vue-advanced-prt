@@ -1,5 +1,6 @@
 export function shuffle (source) {
-  const arr = source.slice()
+  // 注意，slice一下，就不会修改原数组(source)了
+  const arr = source.slice() // slice 对象切成了一个数组
   for (let i = 0; i < arr.length; i++) {
     const j = getRandomInt(i)
     swap(arr, i, j)
