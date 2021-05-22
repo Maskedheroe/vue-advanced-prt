@@ -1,7 +1,7 @@
 <template>
   <div class="recommend" v-loading="loading">
     <Scroll class="recommend-content">
-       <div>
+      <div>
         <div class="slider-wrapper">
           <div class="slider-content">
             <Slider v-if="sliders.length" :sliders="sliders" />
@@ -10,7 +10,12 @@
         <div class="recommend-list">
           <h1 class="list-title" v-show="!loading">热门歌单推荐</h1>
           <ul>
-            <li class="item" v-for="item in albums" :key="item.id">
+            <li
+              class="item"
+              v-for="item in albums"
+              :key="item.id"
+              @click="() => selectItem(item)"
+            >
               <div class="icon">
                 <img width="60" height="60" v-lazy="item.pic" />
               </div>
@@ -23,14 +28,23 @@
         </div>
       </div>
     </Scroll>
+    <router-view v-slot="{ Component }">
+      <transition appear name="slide">
+        <component :is="Component" :data="selectedAlbum" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
 <script>
 import { reactive, toRefs, computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import storage from 'good-storage'
 import { getRecommend } from '../service/recommend'
 import Slider from '../components/base/slider/Slider'
-import Scroll from '../components/base/scroll/Scroll'
+import Scroll from '../components/wrap-scroll'
+import { ALBUM_KEY } from '../assets/js/constant'
+
 const useGetRecDataEffect = () => {
   const data = reactive({ albums: [], sliders: [] })
   const getRecommendData = async () => {
@@ -52,18 +66,33 @@ export default {
     Slider,
     Scroll
   },
-  setup () {
+  setup() {
+    const router = useRouter()
     const { albums, sliders, getRecommendData } = useGetRecDataEffect()
+    const selectedAlbum = ref(null)
     const loading = computed(() => {
       return !sliders.value.length && !albums.value.length
     })
     const loadingText = ref('正在载入')
     getRecommendData()
+    const selectItem = (album) => {
+      selectedAlbum.value = album
+      cacheAlbum(album)
+      router.push({
+        path: `/recommend/${album.id}`
+      })
+    }
+    const cacheAlbum = (album) => {
+      storage.session.set(ALBUM_KEY, album)
+    }
     return {
       albums,
       sliders,
       loading,
-      loadingText
+      loadingText,
+      // album
+      selectItem,
+      selectedAlbum
     }
   }
 }

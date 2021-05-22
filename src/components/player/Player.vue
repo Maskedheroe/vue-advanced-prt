@@ -1,49 +1,147 @@
 <template>
-  <div class="player">
-    <div class="normal-player" v-show="fullScreen">
-      <template v-if="currentSong">
-        <div class="background">
-          <img :src="currentSong.pic" />
-        </div>
-        <div class="top">
-          <div class="back" @click="goBack">
-            <i class="icon-back"></i>
+  <div class="player" v-show="playList.length">
+    <transition
+      name="normal" 
+      @enter="enter"
+      @after-enter="afterEnter"
+      @leave="leave"
+      @after-leave="afterLeave"
+    >
+      <div class="normal-player" v-show="fullScreen">
+        <template v-if="currentSong">
+          <div class="background">
+            <img :src="currentSong.pic" />
           </div>
-          <h1 class="title">{{ currentSong.name }}</h1>
-          <h2 class="subtitle">{{ currentSong.singer }}</h2>
-        </div>
-        <div class="bottom">
-          <div class="operators">
-            <div class="icon i-left">
-              <i :class="modeIcon" @click="changeMode"></i>
+          <div class="top">
+            <div class="back" @click="goBack">
+              <i class="icon-back"></i>
             </div>
-            <div class="icon i-left" :class="disableCls">
-              <i class="icon-prev" @click="prev"></i>
+            <h1 class="title">{{ currentSong.name }}</h1>
+            <h2 class="subtitle">{{ currentSong.singer }}</h2>
+          </div>
+          <div
+            class="middle"
+            @touchstart.prevent="onMiddleTouchStart"
+            @touchmove.prevent="onMiddleTouchMove"
+            @touchend.prevent="onMiddleTouchEnd"
+          >
+            <div class="middle-l" :style="middleLStyle">
+              <div class="cd-wrapper" ref="cdWrapperRef">
+                <div class="cd" ref="cdRef">
+                  <img
+                    :src="currentSong.pic"
+                    class="image"
+                    :class="cdCls"
+                    ref="cdImageRef"
+                  />
+                </div>
+              </div>
+              <div class="playing-lyric-wrapper">
+                <div class="playing-lyric">{{ playingLyric }}</div>
+              </div>
             </div>
-            <div class="icon i-center" :class="disableCls">
-              <i :class="playIcon" @click="togglePlay"></i>
+            <Scroll class="middle-r" ref="lyricScrollRef" :style="middleRStyle">
+              <div class="lyric-wrapper">
+                <div v-if="currentLyric" ref="lyricListRef">
+                  <p
+                    class="text"
+                    :class="{ current: currentLineNum === index }"
+                    v-for="(line, index) in currentLyric.lines"
+                    :key="line.num"
+                  >
+                    {{ line.txt }}
+                  </p>
+                </div>
+                <div class="pure-music" v-show="pureMusicLyric">
+                  <p>{{ pureMusicLyric }}</p>
+                </div>
+              </div>
+            </Scroll>
+          </div>
+          <div class="bottom">
+            <div class="dot-wrapper">
+              <span
+                class="dot"
+                :class="{ active: currentShow === 'cd' }"
+              ></span>
+              <span
+                class="dot"
+                :class="{ active: currentShow === 'lyric' }"
+              ></span>
             </div>
-            <div class="icon i-right" :class="disableCls">
-              <i class="icon-next" @click="next"></i>
+            <div class="progress-wrapper">
+              <span class="time time-l">{{ formatTime(currentTime) }}</span>
+              <div class="progress-bar-wrapper">
+                <ProgressBar
+                  ref="barRef"
+                  :progress="progress"
+                  @progress-changing="onProgressChanging"
+                  @progress-changed="onProgressChanged"
+                />
+              </div>
+              <span class="time time-r">{{
+                formatTime(currentSong.duration)
+              }}</span>
             </div>
-            <div class="icon i-right">
-              <i class="icon-not-favorite"></i>
+            <div class="operators">
+              <div class="icon i-left">
+                <i :class="modeIcon" @click="changeMode"></i>
+              </div>
+              <div class="icon i-left" :class="disableCls">
+                <i class="icon-prev" @click="prev"></i>
+              </div>
+              <div class="icon i-center" :class="disableCls">
+                <i :class="playIcon" @click="togglePlay"></i>
+              </div>
+              <div class="icon i-right" :class="disableCls">
+                <i class="icon-next" @click="next"></i>
+              </div>
+              <div class="icon i-right">
+                <i
+                  @click="() => toggleFavorite(currentSong)"
+                  :class="getFavoriteIcon(currentSong)"
+                >
+                </i>
+              </div>
             </div>
           </div>
-        </div>
-      </template>
-    </div>
-    <audio ref="audioRef" @pause="pause" @canplay="ready" @error="error" />
+        </template>
+      </div>
+    </transition>
+    <MiniPlayer :progress="progress" :togglePlay="togglePlay" />
+    <audio
+      ref="audioRef"
+      @pause="pause"
+      @canplay="ready"
+      @error="error"
+      @timeupdate="updateTime"
+      @ended="end"
+    />
   </div>
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import useMode from './use-mode'
-
-const useFullScreenEffect = (store) => {
+import useFavorite from './use-favorite'
+import ProgressBar from './ProgressBar'
+import { formatTime } from '../../assets/js/util'
+import { PLAY_MODE } from '../../assets/js/constant'
+import useCd from './use-cd'
+import useLyric, { stopLyric, playLyric } from './use-lyric'
+import Scroll from '../base/scroll/Scroll'
+import useMiddleInteractive from './use-middle-interactive'
+import MiniPlayer from './MiniPlayer'
+import useAnimation from './use-animation'
+const useFullScreenEffect = (store, barRef, progress) => {
   const fullScreen = computed(() => store.state.fullScreen)
+  watch(fullScreen, async (newFullScreen) => {
+    if (newFullScreen) {
+      await nextTick()
+      barRef.value.setOffset(progress.value)
+    }
+  })
   return {
     fullScreen
   }
@@ -85,18 +183,17 @@ const useDisableClsEffect = (songReady) => {
 }
 
 // 播放相关逻辑，包括前进后退暂停等
-const usePlayingEffect = (store, songReady, audioRef) => {
+const usePlayingEffect = (
+  store,
+  songReady,
+  audioRef,
+  currentTime,
+  progressChanging
+) => {
   const playing = computed(() => store.state.playing)
   const currentIndex = computed(() => store.state.currentIndex)
   const playList = computed(() => store.state.playList)
-  watch(playing, (newPlaying) => {
-    // 加载未完成则直接返回
-    if (!songReady.value) {
-      return
-    }
-    const audioEl = audioRef.value
-    newPlaying ? audioEl.play() : audioEl.pause()
-  })
+  const playMode = computed(() => store.state.playMode)
 
   const togglePlay = () => {
     if (!songReady.value) {
@@ -122,9 +219,6 @@ const usePlayingEffect = (store, songReady, audioRef) => {
         index = list.length - 1
       }
       store.commit('setCurrentIndex', index)
-      if (!playing.value) {
-        store.commit('setPlayState', true)
-      }
     }
   }
   const next = () => {
@@ -140,33 +234,49 @@ const usePlayingEffect = (store, songReady, audioRef) => {
         index = 0
       }
       store.commit('setCurrentIndex', index)
-      if (!playing.value) {
-        store.commit('setPlayState', true)
-      }
     }
   }
   const loop = () => {
     const audioEl = audioRef.value
     audioEl.currentTime = 0
     audioEl.play()
+    store.commit('setPlayState', true)
   }
   const playIcon = computed(() => {
     return playing.value ? 'icon-pause' : 'icon-play'
   })
+  const updateTime = (e) => {
+    if (!progressChanging) {
+      currentTime.value = e.target.currentTime
+    }
+  }
+  const end = () => {
+    currentTime.value = 0
+    if (playMode.value === PLAY_MODE.loop) {
+      loop()
+    } else {
+      next()
+    }
+  }
   return {
     togglePlay,
     pause,
     prev,
     next,
-    playIcon
+    playIcon,
+    updateTime,
+    playing,
+    end,
+    playList
   }
 }
-const useReadySituationEffect = (songReady) => {
+const useReadySituationEffect = (songReady, currentLyric, currentTime) => {
   const ready = () => {
     if (songReady.value) {
       return
     }
     songReady.value = true
+    playLyric(currentLyric, currentTime)
   }
 
   const error = () => {
@@ -177,26 +287,150 @@ const useReadySituationEffect = (songReady) => {
     error
   }
 }
+const useTimeEffect = (
+  store,
+  currentSong,
+  audioRef,
+  progressChanging,
+  currentLyric
+) => {
+  const currentTime = ref(0)
+  const playing = computed(() => store.state.playing)
+  const progress = computed(() => {
+    return currentTime.value / currentSong.value.duration
+  })
+  const onProgressChanging = (pgs) => {
+    progressChanging = true
+    currentTime.value = currentSong.value.duration * pgs
+    playLyric(currentLyric, currentTime) // 先同步再停止
+    stopLyric(currentLyric)
+  }
+  const onProgressChanged = (pgs) => {
+    progressChanging = false
+    audioRef.value.currentTime = currentTime.value =
+      currentSong.value.duration * pgs
+    if (!playing.value) {
+      store.commit('setPlayState', true)
+    }
+    playLyric(currentLyric, currentTime) // 改变完再同步一次，这是解决拖动完不继续播放的bug
+  }
+  return {
+    currentTime,
+    progress,
+    onProgressChanging,
+    onProgressChanged
+  }
+}
+const useWatchPlayingEffect = (
+  playing,
+  songReady,
+  audioRef,
+  currentLyric,
+  currentTime
+) => {
+  watch(playing, (newPlaying) => {
+    // 加载未完成则直接返回
+    if (!songReady.value) {
+      return
+    }
+    const audioEl = audioRef.value
+    if (newPlaying) {
+      audioEl.play()
+      playLyric(currentLyric, currentTime)
+    } else {
+      audioEl.pause()
+      stopLyric(currentLyric)
+    }
+  })
+}
 
 export default {
   name: 'player',
+  components: {
+    ProgressBar,
+    Scroll,
+    MiniPlayer
+  },
   setup() {
     const store = useStore()
     const songReady = ref(false)
     const audioRef = ref(null)
+    const currentLyric = ref(null)
+    const barRef = ref(null)
+    const progressChanging = false // 设置优先级高一点
 
-    const { fullScreen } = useFullScreenEffect(store)
     const { currentSong } = useCurrentSongEffect(store, songReady, audioRef)
     const { goBack } = useHandleBackEffect(store)
     const { disableCls } = useDisableClsEffect(songReady)
-    const { togglePlay, pause, prev, next, playIcon } = usePlayingEffect(
+    const {
+      currentTime,
+      progress,
+      onProgressChanging,
+      onProgressChanged
+    } = useTimeEffect(
+      store,
+      currentSong,
+      audioRef,
+      progressChanging,
+      currentLyric
+    )
+    const { fullScreen } = useFullScreenEffect(store, barRef, progress)
+    const {
+      togglePlay,
+      pause,
+      prev,
+      next,
+      playIcon,
+      updateTime,
+      end,
+      playing,
+      playList
+    } = usePlayingEffect(
       store,
       songReady,
-      audioRef
+      audioRef,
+      currentTime,
+      progressChanging
     )
-    const { ready, error } = useReadySituationEffect(songReady)
+    const {
+      currentLineNum,
+      lyricScrollRef,
+      lyricListRef,
+      pureMusicLyric,
+      playingLyric
+    } = useLyric({ songReady, currentLyric, currentTime })
+    const { ready, error } = useReadySituationEffect(
+      songReady,
+      currentLyric,
+      currentTime
+    )
     const { modeIcon, changeMode } = useMode()
+    const { getFavoriteIcon, toggleFavorite } = useFavorite()
+    const { cdCls, cdRef, cdImageRef } = useCd()
+    const {
+      cdWrapperRef,
+      enter,
+      afterEnter,
+      leave,
+      afterLeave
+    } = useAnimation()
+    useWatchPlayingEffect(
+      playing,
+      songReady,
+      audioRef,
+      currentLyric,
+      currentTime
+    )
+    const {
+      onMiddleTouchStart,
+      onMiddleTouchMove,
+      onMiddleTouchEnd,
+      currentShow,
+      middleLStyle,
+      middleRStyle
+    } = useMiddleInteractive()
     return {
+      barRef,
       audioRef,
       fullScreen,
       currentSong,
@@ -208,11 +442,48 @@ export default {
       prev,
       next,
       playIcon,
+      updateTime,
+      end,
+      playList,
       // 准备状态系列业务
       ready,
       error,
       modeIcon,
-      changeMode
+      changeMode,
+      // favorite
+      getFavoriteIcon,
+      toggleFavorite,
+      // time
+      currentTime,
+      progress,
+      onProgressChanging,
+      onProgressChanged,
+      // util
+      formatTime,
+      // cd
+      cdCls,
+      cdRef,
+      cdImageRef,
+      cdWrapperRef,
+      // lyric
+      currentLyric,
+      currentLineNum,
+      lyricScrollRef,
+      lyricListRef,
+      pureMusicLyric,
+      playingLyric,
+      // middle
+      onMiddleTouchStart,
+      onMiddleTouchMove,
+      onMiddleTouchEnd,
+      currentShow,
+      middleLStyle,
+      middleRStyle,
+      // animation
+      enter,
+      afterEnter,
+      leave,
+      afterLeave
     }
   }
 }

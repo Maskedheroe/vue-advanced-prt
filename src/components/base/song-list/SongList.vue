@@ -4,7 +4,7 @@
       class="item"
       v-for="(song, index) in songs"
       :key="song.id"
-      @click="selectItem(song, index)"
+      @click="() => selectItem(song, index)"
     >
       <div class="rank" v-if="rank">
         <span :class="getRankCls(index)">{{ getRankText(index) }}</span>

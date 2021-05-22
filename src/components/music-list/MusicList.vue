@@ -31,7 +31,7 @@
 
 <script>
 import SongList from '../../components/base/song-list/SongList'
-import Scroll from '../../components/base/scroll/Scroll'
+import Scroll from '../../components/wrap-scroll'
 import { mapActions, mapState } from 'vuex'
 const RESERVED_HEIGHT = 40
 
@@ -139,6 +139,7 @@ export default {
       this.scrollY = -pos.y
     },
     selectItem({ song, index }) {
+      // **********注意子组件向父组件传值场景的目的-> 为了在父组件中获取数据
       this.selectPlay({
         list: this.songs,
         index

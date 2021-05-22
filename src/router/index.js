@@ -8,6 +8,12 @@ const routes = [
   {
     path: '/recommend',
     name: 'Recommend',
+    children: [
+      {
+        path: ':id',
+        component: () => import(/* webpackChunkName: "Album" */'../views/Album.vue')
+      }
+    ],
     component: () => import(/* webpackChunkName: "Recommend" */'../views/Recommend.vue')
   },
   {
@@ -29,6 +35,12 @@ const routes = [
   {
     path: '/toplist',
     name: 'TopList',
+    children: [
+      {
+        path: ':id',
+        component: () => import(/* webpackChunkName: "TopDetail" */'../views/TopDetail.vue')
+      }
+    ],
     component: () => import(/* webpackChunkName: "Toplist" */'../views/TopList.vue')
   }
 ]

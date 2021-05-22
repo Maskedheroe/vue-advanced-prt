@@ -1,5 +1,5 @@
-import MusicList from '@/components/music-list/music-list'
 import storage from 'good-storage'
+import MusicList from '../../components/music-list/MusicList.vue'
 import { processSongs } from '@/service/song'
 
 export default function createDetailComponent (name, key, fetch) {
@@ -39,7 +39,7 @@ export default function createDetailComponent (name, key, fetch) {
       }
     },
     async created () {
-      const data = this.computedData
+      const data = this.computedData // 减少依赖收集
       if (!data) {
         const path = this.$route.matched[0].path
         this.$router.push({

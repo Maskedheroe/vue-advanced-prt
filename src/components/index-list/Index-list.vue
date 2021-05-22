@@ -27,7 +27,7 @@
       class="shortcut" 
       @touchstart.stop.prevent="onShortcutTouchStart"
       @touchmove.stop.prevent="onShortcutTouchMove"
-      @touchemd.stop.prevent
+      @touchend.stop.prevent
     >
       <ul>
         <li
@@ -45,7 +45,7 @@
 </template>
 
 <script>
-import Scroll from '../scroll/Scroll'
+import Scroll from '../wrap-scroll'
 import useFixed from './use-fixed'
 import useShortcut from './use-shortcut'
 export default {

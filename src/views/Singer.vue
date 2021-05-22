@@ -3,7 +3,7 @@
     <IndexList :data="singers" @select="selectSinger" />
     <router-view v-slot="{ Component }">
       <transition appear name="slide">
-        <component :is="Component" :singer="selectedSinger" />
+        <component :is="Component" :data="selectedSinger" />
       </transition>
     </router-view>
   </div>
@@ -12,7 +12,7 @@
 <script>
 import storage from 'good-storage'
 import { getSingerList } from '@/service/singer'
-import IndexList from '../components/base/index-list/Index-list'
+import IndexList from '../components/index-list/Index-list'
 import { SINGER_KEY } from '../assets/js/constant'
 export default {
   name: 'Singer',
