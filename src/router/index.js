@@ -48,6 +48,13 @@ const routes = [
       }
     ],
     component: () => import(/* webpackChunkName: "Toplist" */'../views/TopList.vue')
+  },
+  {
+    path: '/user',
+    name: 'UserCenter',
+    components: {
+      user: () => import(/* webpackChunkName: "UserCenter" */'../views/UserCenter.vue')
+    }
   }
 ]
 

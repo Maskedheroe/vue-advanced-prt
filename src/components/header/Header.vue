@@ -1,8 +1,10 @@
 <template>
   <div class="header">
-    <span class="icon">
-    </span>
+    <span class="icon"> </span>
     <h1 class="text">Chicken Music</h1>
+    <router-link class="mine" to="/user">
+      <i class="icon-mine"></i>
+    </router-link>
   </div>
 </template>
 
@@ -25,7 +27,7 @@ export default {
     width: 30px;
     height: 32px;
     margin-right: 9px;
-    @include bg-image("logo");
+    @include bg-image('logo');
     background-size: 30px 32px;
   }
   .text {
