@@ -2,7 +2,7 @@
   <teleport to="body">
     <transition name="list-fade">
       <div class="playlist" v-show="visible && playlist.length" @click="hide">
-        <div class="list-wrapper" @click.stop> 
+        <div class="list-wrapper" @click.stop>
           <!-- 阻止冒泡 -->
           <div class="list-header">
             <h1 class="title">
@@ -52,7 +52,7 @@
           text="是否清空播放列表？"
           confirm-btn-text="清空"
         ></confirm>
-        <!-- <add-song ref="addSongRef"></add-song> -->
+        <AddSong ref="addSongRef"></AddSong>
       </div>
     </transition>
   </teleport>
@@ -64,7 +64,8 @@ import Scroll from '../../components/base/scroll/Scroll'
 import useMode from './use-mode.js'
 import useFavorite from './use-favorite'
 import Confirm from '../base/confirm/Confirm'
-const useSelectItemEffect = (playlist, store) => {
+import AddSong from '../../components/addsong/AddSong'
+const useSelectSongEffect = (playlist, store, removing, hide) => {
   const selectItem = (song) => {
     const index = playlist.value.findIndex((item) => {
       return song.id === item.id
@@ -72,16 +73,103 @@ const useSelectItemEffect = (playlist, store) => {
     store.commit('setCurrentIndex', index)
     store.commit('setPlayState', true)
   }
+  const removeSong = (song) => {
+    if (removing.value) {
+      return
+    }
+    removing.value = true
+    store.dispatch('removeSong', song)
+    if (!playlist.value.length) {
+      hide()
+    }
+    setTimeout(() => {
+      removing.value = false
+    }, 300)
+  }
   return {
-    selectItem
+    selectItem,
+    removeSong
   }
 }
+const useConfirmEffect = (store, hide, confirmRef) => {
+  const confirmClear = () => {
+    store.dispatch('clearSongList')
+    hide()
+  }
+  const showConfirm = () => {
+    confirmRef.value.show()
+  }
+  return {
+    confirmClear,
+    showConfirm
+  }
+}
+const useScrollEffect = (
+  visible,
+  scrollRef,
+  sequenceList,
+  currentSong,
+  listRef
+) => {
+  const show = async () => {
+    visible.value = true
+    await nextTick()
+    refreshScroll()
+    scrollToCurrent()
+  }
+  const refreshScroll = () => {
+    scrollRef.value.scroll.refresh()
+  }
+  const scrollToCurrent = () => {
+    const index = sequenceList.value.findIndex(
+      (song) => currentSong.value.id === song.id
+    )
+    if (index === -1) {
+      return
+    }
+    const target = listRef.value.$el.children[index]
+    scrollRef.value.scroll.scrollToElement(target, 300)
+  }
+  return {
+    show,
+    refreshScroll,
+    scrollToCurrent
+  }
+}
+const useCurrentSongEffect = (currentSong, scrollToCurrent, visible) => {
+  const getCurrentIcon = (song) => {
+    if (song.id === currentSong.value.id) {
+      return 'icon-play'
+    }
+  }
 
+  watch(currentSong, async (newSong) => {
+    if (!visible.value || newSong.id) {
+      return
+    }
+    await nextTick()
+    scrollToCurrent()
+  })
+  return {
+    getCurrentIcon
+  }
+}
+const useAddSongEffect = () => {
+  const addSongRef = ref(null)
+  const showAddSong = () => {
+    addSongRef.value.show()
+  }
+  return {
+    addSongRef,
+    showAddSong
+  }
+}
 export default {
   name: 'PlayList',
   components: {
     Scroll,
-    Confirm
+    Confirm,
+    AddSong
   },
   setup() {
     const visible = ref(false)
@@ -99,58 +187,30 @@ export default {
     const hide = () => {
       visible.value = false
     }
-    const show = async () => {
-      visible.value = true
-      await nextTick()
-      refreshScroll()
-      scrollToCurrent()
-    }
-    const getCurrentIcon = (song) => {
-      if (song.id === currentSong.value.id) {
-        return 'icon-play'
-      }
-    }
-    const refreshScroll = () => {
-      scrollRef.value.scroll.refresh()
-    }
-    const scrollToCurrent = () => {
-      const index = sequenceList.value.findIndex(
-        (song) => currentSong.value.id === song.id
-      )
-      if (index === -1) {
-        return
-      }
-      const target = listRef.value.$el.children[index]
-      scrollRef.value.scroll.scrollToElement(target, 300)
-    }
-    const removeSong = (song) => {
-      if (removing.value) {
-        return
-      }
-      removing.value = true
-      store.dispatch('removeSong', song)
-      if (!playlist.value.length) {
-        hide()
-      }
-      setTimeout(() => {
-        removing.value = false
-      }, 300)
-    }
-    watch(currentSong, async (newSong) => {
-      if (!visible.value || newSong.id) {
-        return
-      }
-      await nextTick()
-      scrollToCurrent()
-    })
-    const { selectItem } = useSelectItemEffect(playlist, store)
-    const confirmClear = () => {
-      store.dispatch('clearSongList')
-      hide()
-    }
-    const showConfirm = () => {
-      confirmRef.value.show()
-    }
+    const { show, refreshScroll, scrollToCurrent } = useScrollEffect(
+      visible,
+      scrollRef,
+      sequenceList,
+      currentSong,
+      listRef
+    )
+    const { getCurrentIcon } = useCurrentSongEffect(
+      currentSong,
+      scrollToCurrent,
+      visible
+    )
+    const { selectItem, removeSong } = useSelectSongEffect(
+      playlist,
+      store,
+      removing,
+      hide
+    )
+    const { confirmClear, showConfirm } = useConfirmEffect(
+      store,
+      hide,
+      confirmRef
+    )
+    const { addSongRef, showAddSong } = useAddSongEffect()
     return {
       listRef,
       confirmRef,
@@ -175,7 +235,10 @@ export default {
       removeSong,
       // confirm
       confirmClear,
-      showConfirm
+      showConfirm,
+      // addSong
+      addSongRef,
+      showAddSong
     }
   }
 }

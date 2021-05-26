@@ -14,7 +14,7 @@ export const processSongs = (songs) => {
       song.url = map[song.mid]
       return song
     }).filter((song) => {
-      return song.url.indexOf('vkey') > -1 // 处理完之后 一定都是可以播放的
+      return song.url && song.url.indexOf('vkey') > -1 // 处理完之后 一定都是可以播放的
     })
   })
 }

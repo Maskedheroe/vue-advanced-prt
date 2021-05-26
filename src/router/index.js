@@ -19,6 +19,12 @@ const routes = [
   {
     path: '/search',
     name: 'Search',
+    children: [
+      {
+        path: ':id',
+        component: () => import(/* webpackChunkName: "SingerDetail" */'../views/SingerDetail.vue')
+      }
+    ],
     component: () => import(/* webpackChunkName: "Search" */'../views/Search.vue')
   },
   {

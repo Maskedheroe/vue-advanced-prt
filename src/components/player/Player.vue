@@ -134,6 +134,7 @@ import Scroll from '../base/scroll/Scroll'
 import useMiddleInteractive from './use-middle-interactive'
 import MiniPlayer from './MiniPlayer'
 import useAnimation from './use-animation'
+import usePlayHistory from './use-play-history'
 const useFullScreenEffect = (store, barRef, progress) => {
   const fullScreen = computed(() => store.state.fullScreen)
   watch(fullScreen, async (newFullScreen) => {
@@ -270,13 +271,14 @@ const usePlayingEffect = (
     playList
   }
 }
-const useReadySituationEffect = (songReady, currentLyric, currentTime) => {
+const useReadySituationEffect = (songReady, currentLyric, currentTime, savePlay, currentSong) => {
   const ready = () => {
     if (songReady.value) {
       return
     }
     songReady.value = true
     playLyric(currentLyric, currentTime)
+    savePlay(currentSong.value)
   }
 
   const error = () => {
@@ -399,10 +401,13 @@ export default {
       pureMusicLyric,
       playingLyric
     } = useLyric({ songReady, currentLyric, currentTime })
+    const { savePlay } = usePlayHistory()
     const { ready, error } = useReadySituationEffect(
       songReady,
       currentLyric,
-      currentTime
+      currentTime,
+      savePlay,
+      currentSong
     )
     const { modeIcon, changeMode } = useMode()
     const { getFavoriteIcon, toggleFavorite } = useFavorite()
