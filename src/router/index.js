@@ -12,6 +12,7 @@ const routes = [
       {
         path: ':id',
         component: () => import(/* webpackChunkName: "Album" */'../views/Album.vue')
+        // 魔术注释
       }
     ],
     component: () => import(/* webpackChunkName: "Recommend" */'../views/Recommend.vue')
